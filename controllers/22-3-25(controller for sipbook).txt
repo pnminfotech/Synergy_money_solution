@@ -1,0 +1,379 @@
+const Book = require("../models/Book")
+const xlsx = require("xlsx");
+const NotOnBSE = require("../models/NotOnBSE")
+
+const Sip = require("../models/SipModel");
+/**
+ * Parses a date value from Excel or string format.
+ * Handles Excel serial numbers, YYYY/MM/DD, MM/DD/YYYY formats, and standalone years.
+ */
+const moment = require("moment-timezone");
+
+const parseDate = (dateValue) => {
+    if (!dateValue) return null;
+    let parsedDate;
+
+    if (typeof dateValue === "number") {
+        if (dateValue > 1900 && dateValue < 3000) {
+            parsedDate = moment.tz(`${dateValue}-01-01`, "Asia/Kolkata");
+        } else {
+            parsedDate = moment.tz("1899-12-30", "UTC").add(dateValue, "days");
+        }
+    } else if (typeof dateValue === "string") {
+        if (/^\d{4}$/.test(dateValue)) {
+            parsedDate = moment.tz(`${dateValue}-01-01`, "Asia/Kolkata");
+        } else if (/^\d{2} [A-Za-z]{3} \d{4}$/.test(dateValue)) {
+            parsedDate = moment.tz(dateValue, "DD MMM YYYY", "Asia/Kolkata");
+        } else {
+            parsedDate = moment.tz(dateValue, "Asia/Kolkata");
+        }
+    }
+
+    return parsedDate.isValid() ? parsedDate.format("YYYY-MM-DD") : null; // Store as "YYYY-MM-DD" to prevent shifting
+};
+
+
+const uploadSIPData = async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            console.log("❌ No file uploaded!");
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+        console.log("✅ File uploaded:", file.originalname);
+
+     
+        const workbook = xlsx.read(file.buffer, { type: "buffer" });
+        const sheetName = workbook.SheetNames[0];
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        console.log("📊 Parsed Excel Data:", data);
+
+        for (const row of data) {
+            const { 
+                "Client Code": clientCode, 
+                "Primary Holder First Name": name, 
+                "XSIP Regn No": xsipRegnNo, 
+                "Scheme Name": schemeName, 
+                "Start Date": startDate, 
+                "End Date": endDate, 
+                "Installments Amt": installmentAmt 
+            } = row;
+
+            console.log("📌 Raw Excel Dates - Start:", startDate, " | End:", endDate);
+
+            const parsedStartDate = parseDate(startDate);
+            const parsedEndDate = parseDate(endDate);
+
+            if (!parsedStartDate || !parsedEndDate) {
+                console.log("❌ Skipping row due to invalid date(s):", startDate, endDate);
+                continue;
+            }
+
+            console.log("📅 Parsed Dates - Start:", parsedStartDate, " | End:", parsedEndDate);
+
+            const sipDate = new Date(parsedStartDate).getDate(); 
+
+            const updatedDoc = await Book.findOneAndUpdate(
+                { date: sipDate },
+                { 
+                    $push: { 
+                        clients: { clientCode, name, xsipRegnNo, schemeName, startDate: parsedStartDate, endDate: parsedEndDate, installmentAmt } 
+                    }
+                },
+                { upsert: true, new: true }
+            );
+
+            console.log("✅ Updated MongoDB Document:", updatedDoc);
+        }
+
+        res.status(200).json({ message: "SIP Data uploaded successfully" });
+    } catch (error) {
+        console.error("❌ Error:", error);
+        res.status(500).json({ error: "Error processing file" });
+    }
+};
+
+const getSIPByDate = async (req, res) => {
+    try {
+        const { date } = req.params; 
+        const sipData = await Book.findOne({ date: Number(date) });
+
+        if (!sipData) return res.status(404).json({ error: "No SIP data found for this date" });
+
+        res.status(200).json(sipData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error fetching data" });
+    }
+};
+
+////////////////////not on bse///////////////
+const uploadNotOnBSEData = async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            console.log("❌ No file uploaded!");
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+        console.log("✅ File uploaded:", file.originalname);
+
+     
+        const workbook = xlsx.read(file.buffer, { type: "buffer" });
+        const sheetName = workbook.SheetNames[0];
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        console.log("📊 Parsed Excel Data:", data);
+
+        for (const row of data) {
+            const { 
+                "Client Code": clientCode, 
+                "Primary Holder First Name": name, 
+                // "XSIP Regn No": xsipRegnNo, 
+                "Scheme Name": schemeName, 
+                "Start Date": startDate, 
+                "End Date": endDate, 
+                "Installments Amt": installmentAmt 
+            } = row;
+
+            console.log("📌 Raw Excel Dates - Start:", startDate, " | End:", endDate);
+
+            const parsedStartDate = parseDate(startDate);
+            const parsedEndDate = parseDate(endDate);
+
+            // if (!parsedStartDate || !parsedEndDate) {
+            //     console.log("❌ Skipping row due to invalid date(s):", startDate, endDate);
+            //     continue;
+            // }
+
+            console.log("📅 Parsed Dates - Start:", parsedStartDate, " | End:", parsedEndDate);
+
+            const sipDate = new Date(parsedStartDate).getDate(); 
+
+            const updatedDoc = await NotOnBSE.findOneAndUpdate(
+                { date: sipDate },
+                { 
+                    $push: { 
+                        clients: { clientCode, name,  schemeName, startDate: parsedStartDate, endDate: parsedEndDate, installmentAmt } 
+                    }
+                },
+                { upsert: true, new: true }
+            );
+
+            console.log("✅ Updated MongoDB Document:", updatedDoc);
+        }
+
+        res.status(200).json({ message: "SIP Data uploaded successfully" });
+    } catch (error) {
+        console.error("❌ Error:", error);
+        res.status(500).json({ error: "Error processing file" });
+    }
+};
+
+
+const getNotOnBSEData = async (req, res) => {
+    try {
+        const allDocuments = await NotOnBSE.find(); // Get all documents
+
+        if (!allDocuments || allDocuments.length === 0) {
+            return res.status(404).json({ error: "No SIP data available" });
+        }
+
+        // Extract all clients from the documents
+        const allClients = allDocuments.flatMap(doc => doc.clients);
+
+        res.status(200).json(allClients);
+    } catch (error) {
+        console.error("❌ Error fetching all clients:", error);
+        res.status(500).json({ error: "Error fetching data" });
+    }
+};
+
+
+
+
+
+
+
+
+
+/**
+ * Mark SIP deductions as "Yes" or "No" based on uploaded data
+ */
+
+
+// Function to update SIP Deductions
+const updateSIPDeductions = async (req, res) => {
+    try {
+        const { xsipRegnNo, month, status, reason, date } = req.body;
+        
+        // Validate date
+        let validDate = Number(date);
+        if (isNaN(validDate) || validDate === undefined || validDate === null) {
+            console.error("Invalid date received:", date);
+            validDate = Date.now(); // Default to current timestamp
+        }
+        
+        // Find and update SIP deduction status
+        const updatedSIP = await NotOnBSE.findOneAndUpdate(
+            { xsipRegnNo },
+            { $set: { [`deductions.${month}`]: status, reason, date: validDate } },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedSIP) {
+            return res.status(404).json({ message: 'SIP record not found' });
+        }
+
+        res.status(200).json({ message: 'SIP deduction status updated successfully', updatedSIP });
+    } catch (error) {
+        console.error("Error updating SIP deductions:", error);
+        res.status(500).json({ message: 'Server error while updating SIP deductions', error: error.message });
+    }
+};
+
+module.exports = { updateSIPDeductions };
+
+
+
+
+
+/**
+ * Fetch all SIP clients on a given date
+ */
+const getClientsByDate = async (req, res) => {
+    try {
+        const { date } = req.params;
+        const sipData = await Book.findOne({ date: Number(date) });
+
+        if (!sipData) {
+            return res.status(404).json({ error: "No clients found for this date" });
+        }
+
+        res.status(200).json({ clients: sipData.clients });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error fetching data" });
+    }
+};
+
+/**
+ * Get all SIPs for a given year
+ */
+const getSIPsByYear = async (req, res) => {
+    try {
+        const { year } = req.params;
+        const startOfYear = `${year}-01-01`;
+        const endOfYear = `${year}-12-31`;
+
+        const sipData = await Book.find({
+            "clients.startDate": { $gte: startOfYear, $lte: endOfYear }
+        });
+
+        if (!sipData.length) {
+            return res.status(404).json({ error: `No SIP data found for the year ${year}` });
+        }
+
+        res.status(200).json(sipData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error fetching data" });
+    }
+};
+
+
+
+module.exports = { uploadSIPData, getSIPByDate, updateSIPDeductions, 
+    getClientsByDate, 
+    getSIPsByYear,    uploadNotOnBSEData ,getNotOnBSEData};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+router code 
+
+
+
+const express = require("express");
+const multer = require("multer");
+const Book = require("../models/Book")
+const NotOnBSE = require("../models/NotOnBSE")
+const { uploadSIPData, getSIPByDate,  updateSIPDeductions, 
+    getClientsByDate, 
+    getSIPsByYear, uploadNotOnBSEData ,getNotOnBSEData } = require("../controllers/sipBookController");
+
+const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.post("/upload-sips", upload.single("file"), uploadSIPData);
+
+
+
+router.get("/sipDate/:date", getSIPByDate);
+
+
+// Update SIP deductions (Yes/No) from uploaded Excel file
+router.post("/update-deductions", upload.single("file"), updateSIPDeductions);
+
+router.get("/sipDate/:date", getClientsByDate);
+
+// Get all SIPs for a specific year
+router.get("/sips/:year", getSIPsByYear);
+
+//not on bse
+
+router.post("/uploadNotOnBSEData", upload.single("file"), uploadNotOnBSEData);
+
+router.get("/getNotOnBSEData",getNotOnBSEData)
+
+router.post("/update-deductions", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+  
+      const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+  
+      const today = new Date();
+      const month = today.toLocaleString("default", { month: "short" }); // "Jan", "Feb", ...
+  
+      for (const row of data) {
+        const sipRegnNo = row["Sip Regn No."];
+        const orderStatus = row["Order Status"] === "Valid" ? "Yes" : "No";
+  
+        if (!sipRegnNo) continue;
+  
+        await Book.updateOne(
+          { "clients.xsipRegnNo": sipRegnNo },
+          { $set: { [`clients.$.deductions.${month}`]: orderStatus } }
+        );
+      }
+  
+      res.status(200).json({ message: "SIP deductions updated successfully" });
+    } catch (error) {
+      console.error("Error updating SIP deductions:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+module.exports = router;

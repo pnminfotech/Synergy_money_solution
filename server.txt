@@ -1,0 +1,641 @@
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const mongoose = require("mongoose");
+const Tesseract = require("tesseract.js");
+require("dotenv").config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ✅ Multer Configuration for File Uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage }).array("documents", 10); 
+
+// ✅ Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("✅ MongoDB Atlas Connected"))
+    .catch(err => {
+        console.error("❌ MongoDB Connection Error:", err);
+        process.exit(1);
+    });
+
+// ✅ MongoDB Schema & Model for Clients
+const ClientSchema = new mongoose.Schema({
+    clientId: { type: String, required: true, unique: true, default: () => new mongoose.Types.ObjectId().toString() },
+    clientName: { type: String, required: true },
+    documents: [
+        {
+            filename: String,
+            extractedText: String,
+            uploadedAt: { type: Date, default: Date.now }
+        }
+    ]
+});
+const Client = mongoose.model("Client", ClientSchema);
+
+// ✅ Upload API (Client ID Auto-Generated)
+app.post("/api/clients/upload", upload, async (req, res) => {
+    try {
+        console.log("🔹 Request Received:", req.body);
+        console.log("🔹 Files Uploaded:", req.files);
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: "No files uploaded" });
+        }
+
+        const { clientName } = req.body;
+        if (!clientName) {
+            return res.status(400).json({ message: "clientName is required" });
+        }
+
+        const clientId = new mongoose.Types.ObjectId().toString(); // Auto-generate clientId
+
+        const processedDocuments = await Promise.all(req.files.map(async (file) => {
+            const extractedText = await Tesseract.recognize(file.buffer, 'eng')
+                .then(({ data: { text } }) => text)
+                .catch(err => {
+                    console.error("OCR Error:", err);
+                    return "OCR Failed";
+                });
+
+            return { filename: file.originalname, extractedText };
+        }));
+
+        const client = new Client({ clientId, clientName, documents: processedDocuments });
+        await client.save();
+
+        res.json({ message: "Files uploaded and processed successfully", client });
+
+    } catch (error) {
+        console.error("❌ Upload Error:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+});
+
+// ✅ Delete Specific Document
+app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
+    try {
+        const { clientId, documentId } = req.params;
+
+        const updatedClient = await Client.findOneAndUpdate(
+            { clientId },
+            { $pull: { documents: { _id: documentId } } }, // Remove the document
+            { new: true }
+        );
+
+        if (!updatedClient) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ message: "Document deleted successfully", client: updatedClient });
+    } catch (error) {
+        console.error("❌ Document Deletion Error:", error);
+        res.status(500).json({ message: "Failed to delete document", error: error.message });
+    }
+});
+
+// ✅ Get All Clients
+app.get("/api/clients", async (req, res) => {
+    try {
+        const clients = await Client.find().sort({ clientName: 1 });
+        res.json({ clients });
+    } catch (error) {
+        console.error("❌ Fetch Clients Error:", error);
+        res.status(500).json({ message: "Failed to fetch clients", error: error.message });
+    }
+});
+
+// ✅ Get Specific Client
+app.get("/api/clients/:clientId", async (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const client = await Client.findOne({ clientId });
+
+        if (!client) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ client });
+    } catch (error) {
+        console.error("❌ Fetch Client Data Error:", error);
+        res.status(500).json({ message: "Failed to fetch client data", error: error.message });
+    }
+});
+
+// ✅ Start the Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
+
+
+
+
+
+UPDATED AT 22-2-25 (11AM)
+
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const mongoose = require("mongoose");
+const Tesseract = require("tesseract.js");
+require("dotenv").config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ✅ Multer Configuration for File Uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage }).array("documents", 10); 
+
+// ✅ Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("✅ MongoDB Atlas Connected"))
+    .catch(err => {
+        console.error("❌ MongoDB Connection Error:", err);
+        process.exit(1);
+    });
+
+// ✅ MongoDB Schema & Model for Clients
+const ClientSchema = new mongoose.Schema({
+    clientId: { type: String, required: true, unique: true, default: () => new mongoose.Types.ObjectId().toString() },
+    clientName: { type: String, required: true },
+    documents: [
+        {
+            filename: String,
+            extractedText: String,
+            uploadedAt: { type: Date, default: Date.now }
+        }
+    ]
+});
+const Client = mongoose.model("Client", ClientSchema);
+
+// ✅ Upload API (Client ID Auto-Generated)
+app.post("/api/clients/upload", upload, async (req, res) => {
+    try {
+        console.log("🔹 Request Received:", req.body);
+        console.log("🔹 Files Uploaded:", req.files);
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: "No files uploaded" });
+        }
+
+        const { clientName } = req.body;
+        if (!clientName) {
+            return res.status(400).json({ message: "clientName is required" });
+        }
+
+        const clientId = new mongoose.Types.ObjectId().toString(); // Auto-generate clientId
+
+        const processedDocuments = await Promise.all(req.files.map(async (file) => {
+            const extractedText = await Tesseract.recognize(file.buffer, 'eng')
+                .then(({ data: { text } }) => text)
+                .catch(err => {
+                    console.error("OCR Error:", err);
+                    return "OCR Failed";
+                });
+
+            return { filename: file.originalname, extractedText };
+        }));
+
+        const client = new Client({ clientId, clientName, documents: processedDocuments });
+        await client.save();
+
+        res.json({ message: "Files uploaded and processed successfully", client });
+
+    } catch (error) {
+        console.error("❌ Upload Error:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+});
+
+// ✅ Delete Specific Document
+app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
+    try {
+        const { clientId, documentId } = req.params;
+
+        const updatedClient = await Client.findOneAndUpdate(
+            { clientId },
+            { $pull: { documents: { _id: documentId } } }, // Remove the document
+            { new: true }
+        );
+
+        if (!updatedClient) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ message: "Document deleted successfully", client: updatedClient });
+    } catch (error) {
+        console.error("❌ Document Deletion Error:", error);
+        res.status(500).json({ message: "Failed to delete document", error: error.message });
+    }
+});
+
+
+// app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
+//     try {
+//         const { clientId, documentId } = req.params;
+
+//         const updatedClient = await Client.findByIdAndUpdate(
+//             clientId,  // Use `_id` instead of `clientId`
+//             { $pull: { documents: { _id: documentId } } }, // Remove the document
+//             { new: true }
+//         );
+
+//         if (!updatedClient) {
+//             return res.status(404).json({ message: "Client not found" });
+//         }
+
+//         res.json({ message: "Document deleted successfully", client: updatedClient });
+//     } catch (error) {
+//         console.error("❌ Document Deletion Error:", error);
+//         res.status(500).json({ message: "Failed to delete document", error: error.message });
+//     }
+// });
+
+// ✅ Get All Clients
+app.get("/api/clients", async (req, res) => {
+    try {
+        const clients = await Client.find().sort({ clientName: 1 });
+        res.json({ clients });
+    } catch (error) {
+        console.error("❌ Fetch Clients Error:", error);
+        res.status(500).json({ message: "Failed to fetch clients", error: error.message });
+    }
+});
+
+// ✅ Get Specific Client
+app.get("/api/clients/:clientId", async (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const client = await Client.findOne({ clientId });
+
+        if (!client) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ client });
+    } catch (error) {
+        console.error("❌ Fetch Client Data Error:", error);
+        res.status(500).json({ message: "Failed to fetch client data", error: error.message });
+    }
+});
+
+// ✅ Start the Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
+
+
+
+
+
+12.00pm
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const mongoose = require("mongoose");
+const Tesseract = require("tesseract.js");
+require("dotenv").config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ✅ Multer Configuration for File Uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage }).array("documents", 10); 
+
+// ✅ Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("✅ MongoDB Atlas Connected"))
+    .catch(err => {
+        console.error("❌ MongoDB Connection Error:", err);
+        process.exit(1);
+    });
+
+// ✅ MongoDB Schema & Model for Clients
+const ClientSchema = new mongoose.Schema({
+    clientId: { type: String, required: true, unique: true, default: () => new mongoose.Types.ObjectId().toString() },
+    clientName: { type: String, required: true },
+    documents: [
+        {
+            filename: String,
+            extractedText: String,
+            uploadedAt: { type: Date, default: Date.now }
+        }
+    ]
+});
+const Client = mongoose.model("Client", ClientSchema);
+
+// ✅ Upload API (Client ID Auto-Generated)
+app.post("/api/clients/upload", upload, async (req, res) => {
+    try {
+        console.log("🔹 Request Received:", req.body);
+        console.log("🔹 Files Uploaded:", req.files);
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: "No files uploaded" });
+        }
+
+        const { clientName } = req.body;
+        if (!clientName) {
+            return res.status(400).json({ message: "clientName is required" });
+        }
+
+        const clientId = new mongoose.Types.ObjectId().toString(); // Auto-generate clientId
+
+        const processedDocuments = await Promise.all(req.files.map(async (file) => {
+            const extractedText = await Tesseract.recognize(file.buffer, 'eng')
+                .then(({ data: { text } }) => text)
+                .catch(err => {
+                    console.error("OCR Error:", err);
+                    return "OCR Failed";
+                });
+
+            return { filename: file.originalname, extractedText };
+        }));
+
+        const client = new Client({ clientId, clientName, documents: processedDocuments });
+        await client.save();
+
+        res.json({ message: "Files uploaded and processed successfully", client });
+
+    } catch (error) {
+        console.error("❌ Upload Error:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+});
+
+// ✅ Delete Specific Document
+app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
+    try {
+        const { clientId, documentId } = req.params;
+
+        const updatedClient = await Client.findOneAndUpdate(
+            { clientId },
+            { $pull: { documents: { _id: documentId } } }, // Remove the document
+            { new: true }
+        );
+
+        if (!updatedClient) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ message: "Document deleted successfully", client: updatedClient });
+    } catch (error) {
+        console.error("❌ Document Deletion Error:", error);
+        res.status(500).json({ message: "Failed to delete document", error: error.message });
+    }
+});
+
+
+// app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
+//     try {
+//         const { clientId, documentId } = req.params;
+
+//         const updatedClient = await Client.findByIdAndUpdate(
+//             clientId,  // Use `_id` instead of `clientId`
+//             { $pull: { documents: { _id: documentId } } }, // Remove the document
+//             { new: true }
+//         );
+
+//         if (!updatedClient) {
+//             return res.status(404).json({ message: "Client not found" });
+//         }
+
+//         res.json({ message: "Document deleted successfully", client: updatedClient });
+//     } catch (error) {
+//         console.error("❌ Document Deletion Error:", error);
+//         res.status(500).json({ message: "Failed to delete document", error: error.message });
+//     }
+// });
+
+// ✅ Get All Clients
+app.get("/api/clients", async (req, res) => {
+    try {
+        const clients = await Client.find().sort({ clientName: 1 });
+        res.json({ clients });
+    } catch (error) {
+        console.error("❌ Fetch Clients Error:", error);
+        res.status(500).json({ message: "Failed to fetch clients", error: error.message });
+    }
+});
+
+// ✅ Get Specific Client
+app.get("/api/clients/:clientId", async (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const client = await Client.findOne({ clientId });
+
+        if (!client) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ client });
+    } catch (error) {
+        console.error("❌ Fetch Client Data Error:", error);
+        res.status(500).json({ message: "Failed to fetch client data", error: error.message });
+    }
+});
+
+// ✅ Start the Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
+
+
+
+
+
+
+25-2-2025
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const mongoose = require("mongoose");
+const Tesseract = require("tesseract.js");
+require("dotenv").config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ✅ Multer Configuration for File Uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage }).array("documents", 10); 
+
+// ✅ Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("✅ MongoDB Atlas Connected"))
+    .catch(err => {
+        console.error("❌ MongoDB Connection Error:", err);
+        process.exit(1);
+    });
+
+// ✅ MongoDB Schema & Model for Clients
+const ClientSchema = new mongoose.Schema({
+    clientId: { type: String, required: true, unique: true, default: () => new mongoose.Types.ObjectId().toString() },
+    clientName: { type: String, required: true },
+    documents: [
+        {
+            filename: String,
+            extractedText: String,
+            uploadedAt: { type: Date, default: Date.now }
+        }
+    ]
+});
+const Client = mongoose.model("Client", ClientSchema);
+
+// ✅ Upload API (Client ID Auto-Generated)
+app.post("/api/clients/upload", upload, async (req, res) => {
+    try {
+        console.log("🔹 Request Received:", req.body);
+        console.log("🔹 Files Uploaded:", req.files);
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: "No files uploaded" });
+        }
+
+        const { clientName } = req.body;
+        if (!clientName) {
+            return res.status(400).json({ message: "clientName is required" });
+        }
+
+        const clientId = new mongoose.Types.ObjectId().toString(); // Auto-generate clientId
+
+        const processedDocuments = await Promise.all(req.files.map(async (file) => {
+            const extractedText = await Tesseract.recognize(file.buffer, 'eng')
+                .then(({ data: { text } }) => text)
+                .catch(err => {
+                    console.error("OCR Error:", err);
+                    return "OCR Failed";
+                });
+
+            return { filename: file.originalname, extractedText };
+        }));
+
+        const client = new Client({ clientId, clientName, documents: processedDocuments });
+        await client.save();
+
+        res.json({ message: "Files uploaded and processed successfully", client });
+
+    } catch (error) {
+        console.error("❌ Upload Error:", error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+});
+
+// ✅ Delete Specific Document
+app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
+    try {
+        const { clientId, documentId } = req.params;
+
+        const updatedClient = await Client.findOneAndUpdate(
+            { clientId },
+            { $pull: { documents: { _id: documentId } } }, // Remove the document
+            { new: true }
+        );
+
+        if (!updatedClient) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ message: "Document deleted successfully", client: updatedClient });
+    } catch (error) {
+        console.error("❌ Document Deletion Error:", error);
+        res.status(500).json({ message: "Failed to delete document", error: error.message });
+    }
+});
+
+
+// app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
+//     try {
+//         const { clientId, documentId } = req.params;
+
+//         const updatedClient = await Client.findByIdAndUpdate(
+//             clientId,  // Use `_id` instead of `clientId`
+//             { $pull: { documents: { _id: documentId } } }, // Remove the document
+//             { new: true }
+//         );
+
+//         if (!updatedClient) {
+//             return res.status(404).json({ message: "Client not found" });
+//         }
+
+//         res.json({ message: "Document deleted successfully", client: updatedClient });
+//     } catch (error) {
+//         console.error("❌ Document Deletion Error:", error);
+//         res.status(500).json({ message: "Failed to delete document", error: error.message });
+//     }
+// });
+
+// ✅ Get All Clients
+app.get("/api/clients", async (req, res) => {
+    try {
+        const clients = await Client.find().sort({ clientName: 1 });
+        res.json({ clients });
+    } catch (error) {
+        console.error("❌ Fetch Clients Error:", error);
+        res.status(500).json({ message: "Failed to fetch clients", error: error.message });
+    }
+});
+
+// ✅ Get Specific Client
+app.get("/api/clients/:clientId", async (req, res) => {
+    try {
+        const { clientId } = req.params;
+        const client = await Client.findOne({ clientId });
+
+        if (!client) {
+            return res.status(404).json({ message: "Client not found" });
+        }
+
+        res.json({ client });
+    } catch (error) {
+        console.error("❌ Fetch Client Data Error:", error);
+        res.status(500).json({ message: "Failed to fetch client data", error: error.message });
+    }
+});
+
+// ✅ Start the Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
