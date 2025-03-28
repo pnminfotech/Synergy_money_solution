@@ -1,19 +1,19 @@
 const mongoose = require("mongoose");
 
 const sipBookSchema = new mongoose.Schema({
-    date: Number, // The day of the month (1-31)
-   // The SIP year
+    date: Number, 
+   
     clients: [
         {
-            clientCode: String,  // Unique client identifier
-            name: String,  // Primary Holder First Name
-            xsipRegnNo: String, // SIP Registration Number
-            schemeName: String, // Scheme Name
-            startDate: Date,  // Start Date of SIP
-            endDate: Date,  // End Date of SIP
-            installmentAmt: Number, // SIP Installment Amount
+            clientCode: String,  
+            name: String,  
+            xsipRegnNo: String, 
+            schemeName: String,
+            startDate: Date,  
+            endDate: Date,  
+            installmentAmt: Number, 
             
-            // ✅ Monthly Deduction Tracking for the given year
+           
             deductionStatus: {
                 Jan: { type: String, default: "Pending" },
                 Feb: { type: String, default: "Pending" },
