@@ -15,14 +15,17 @@ const errorHandler = require("./middleware/errorHandler");
 const SipBRoutes = require("./routes/SipBRoutes")
 const redemptionRoutes = require("./routes/redemptionRoutes")
 const NotOnBSERoutes = require("./routes/NotOnBSERoutes")
-
-
+// const whatsapproutes = require("./routes/whatsapproutes")
+const excelRoutes = require("./routes/excelRoutes");
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const upload = require("./config/multerConfig");
 
+
+
+app.use("/api/excel/crud", excelRoutes);
 
 
 // ✅ Use SIP Routes
@@ -40,6 +43,8 @@ app.use("/api/books", SipBookRoutes);
 
 app.use("/api/redemption", redemptionRoutes);
 app.use("/api/notonbse",NotOnBSERoutes);
+// app.use("/api/whatsapp", whatsapproutes);
+
 
 // ✅ Multer Configuration for File Uploads
 const storage = multer.memoryStorage();
@@ -56,22 +61,7 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
     });
 
 
-
-
-
     mongoose.set("debug", true);
-
-
-
-
-
-
-
-
-
-
-    
-
 
 
 
@@ -102,33 +92,26 @@ app.post("/upload-image", upload.single("image"), async (req, res) => {
 });
 
 
-
-
-
-
-
-
-
 // ✅ Define Schema for Excel Data
-const ExcelDataFromSheetSchema = new mongoose.Schema({
-    userId: { type: String, required: true },  // Convert "User Id" -> "userId"
-    name: { type: String, required: true },   // Convert "NAME" -> "name"
-    mobile: { type: String, required: true }, // Convert "MOBILE" -> "mobile"
-    pan: { type: String },                    // Convert "PAN" -> "pan"
-    taxStatus: { type: String },              // Convert "TAX STATUS" -> "taxStatus"
-    holdingMode: { type: String },            // Convert "HOLDING MODE" -> "holdingMode"
-    email: { type: String },                  // Convert "EMAIL" -> "email"
-    createdOn: { type: String },              // Convert "CREATED ON" -> "createdOn"
-    clientId: { type: String },               // Convert "CLIENT ID" -> "clientId"
-    kyc: { type: String },                    // Convert "KYC" -> "kyc"
-    bank: { type: String },                   // Convert "BANK" -> "bank"
-    aof: { type: String },                    // Convert "AOF" -> "aof"
-    fatca: { type: String },                  // Convert "FATCA" -> "fatca"
-    mandate: { type: String }                 // Convert "MANDATE" -> "mandate"
-});
+// const ExcelDataFromSheetSchema = new mongoose.Schema({
+//     userId: { type: String, required: true },  
+//     name: { type: String, required: true },   
+//     mobile: { type: String, required: true }, 
+//     pan: { type: String },                    
+//     taxStatus: { type: String },              
+//     holdingMode: { type: String },            
+//     email: { type: String },                 
+//     createdOn: { type: String },              
+//     clientId: { type: String },               
+//     kyc: { type: String },                   
+//     bank: { type: String },                   
+//     aof: { type: String },                   
+//     fatca: { type: String },                 
+//     mandate: { type: String }                 
+// });
 
 
-const ExcelDataFromSheet = mongoose.model("ExcelDataFromSheet", ExcelDataFromSheetSchema);
+// const ExcelDataFromSheet = mongoose.model("ExcelDataFromSheet", ExcelDataFromSheetSchema);
 
 // ✅ API to Upload and Read Excel File
 app.post("/api/excel/upload", excelUpload, async (req, res) => {
@@ -137,20 +120,18 @@ app.post("/api/excel/upload", excelUpload, async (req, res) => {
             return res.status(400).json({ message: "No Excel file uploaded" });
         }
 
-        // Read Excel file
         const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
         const sheetName = workbook.SheetNames[0];
         let sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        console.log("📊 Raw Extracted Data:", sheetData); // Debugging
+        console.log("📊 Raw Extracted Data:", sheetData); 
 
-        // ✅ Convert Excel Headers to Match Schema
-       // ✅ Convert Excel Headers to Match Schema
+      
 sheetData = sheetData
 .map(row => {
     let cleanedRow = {};
     Object.keys(row).forEach(key => {
-        const trimmedKey = key.trim(); // Trim spaces from headers
+        const trimmedKey = key.trim(); 
         cleanedRow[trimmedKey] = row[key];
     });
 
@@ -171,7 +152,7 @@ sheetData = sheetData
         mandate: cleanedRow["MANDATE"] || ""
     };
 })
-.filter(row => row.userId && row.name && row.mobile); // ✅ Remove invalid rows
+.filter(row => row.userId && row.name && row.mobile); 
 
 console.log("✅ Transformed Data for MongoDB:", sheetData);
 
@@ -185,7 +166,7 @@ if (missingRows.length > 0) {
 }
 console.log("📊 Final Data Before Insertion:", sheetData);
 
-        // ✅ Save to MongoDB
+       
         const result = await ExcelDataFromSheet.insertMany(sheetData);
         console.log("✅ Data Saved Successfully:", result);
 
@@ -226,28 +207,7 @@ const ClientSchema = new mongoose.Schema({
 });
 const Client = mongoose.model("Client", ClientSchema);
 
-// ✅ Upload Documents with OCR
-// app.post("/api/clients/upload", upload, async (req, res) => {
-//     try {
-//         if (!req.files || req.files.length === 0) return res.status(400).json({ message: "No files uploaded" });
-//         if (!req.body.clientName) return res.status(400).json({ message: "clientName is required" });
 
-//         const clientId = new mongoose.Types.ObjectId().toString();
-//         const processedDocuments = await Promise.all(req.files.map(async (file) => {
-//             const extractedText = await Tesseract.recognize(file.buffer, 'eng')
-//                 .then(({ data: { text } }) => text)
-//                 .catch(err => (console.error("OCR Error:", err), "OCR Failed"));
-//             return { filename: file.originalname, extractedText };
-//         }));
-
-//         const client = new Client({ clientId, clientName: req.body.clientName, documents: processedDocuments });
-//         await client.save();
-//         res.json({ message: "Files uploaded and processed successfully", client });
-//     } catch (error) {
-//         console.error("❌ Upload Error:", error);
-//         res.status(500).json({ message: "Internal Server Error", error: error.message });
-//     }
-// });
 
 // ✅ Delete Specific Document
 app.delete("/api/clients/:clientId/documents/:documentId", async (req, res) => {
