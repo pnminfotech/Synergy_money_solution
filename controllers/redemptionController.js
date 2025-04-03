@@ -72,24 +72,66 @@ const getRedemptions = async (req, res) => {
 /**
  * Update Order Status and Remark
  */
-const updateRedemptionStatus = async (req, res) => {
+// const updateRedemptionStatus = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const { orderStatus = "-", orderRemark = "-" } = req.body; 
+
+//         const updatedData = await Redemption.findByIdAndUpdate(
+//             id,
+//             { orderStatus, orderRemark },
+//             { new: true }
+//         );
+
+//         if (!updatedData) return res.status(404).json({ error: "Redemption entry not found" });
+
+//         res.status(200).json({ message: "Redemption status updated successfully", updatedData });
+//     } catch (error) {
+//         console.error("❌ Error updating redemption status:", error);
+//         res.status(500).json({ error: "Error updating data" });
+//     }
+// };
+
+
+/**
+ * Update Redemption Entry
+ */
+const updateRedemption = async (req, res) => {
     try {
         const { id } = req.params;
-        const { orderStatus = "-", orderRemark = "-" } = req.body; // Default values if missing
+        const updateFields = req.body; // Fields to update
 
         const updatedData = await Redemption.findByIdAndUpdate(
             id,
-            { orderStatus, orderRemark },
-            { new: true }
+            updateFields,
+            { new: true, runValidators: true } // Return updated document
         );
 
         if (!updatedData) return res.status(404).json({ error: "Redemption entry not found" });
 
-        res.status(200).json({ message: "Redemption status updated successfully", updatedData });
+        res.status(200).json({ message: "Redemption data updated successfully", updatedData });
     } catch (error) {
-        console.error("❌ Error updating redemption status:", error);
+        console.error("❌ Error updating redemption data:", error);
         res.status(500).json({ error: "Error updating data" });
     }
 };
 
-module.exports = { uploadRedemptionData, getRedemptions, updateRedemptionStatus };
+/**
+ * Delete Redemption Entry
+ */
+const deleteRedemption = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const deletedData = await Redemption.findByIdAndDelete(id);
+
+        if (!deletedData) return res.status(404).json({ error: "Redemption entry not found" });
+
+        res.status(200).json({ message: "Redemption data deleted successfully" });
+    } catch (error) {
+        console.error("❌ Error deleting redemption data:", error);
+        res.status(500).json({ error: "Error deleting data" });
+    }
+};
+
+module.exports = { uploadRedemptionData, getRedemptions, deleteRedemption, updateRedemption};
