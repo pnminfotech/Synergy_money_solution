@@ -1,7 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const excelController = require("../controllers/excelController");
+const multer = require("multer");
+ 
 
+// Multer Setup for File Uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+
+// ✅ Upload Excel & Insert Data
+router.post("/upload", upload.single("file"), excelController.uploadExcelData);
 
 
 // ✅ Get All Records
