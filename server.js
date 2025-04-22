@@ -17,6 +17,11 @@ const redemptionRoutes = require("./routes/redemptionRoutes")
 const NotOnBSERoutes = require("./routes/NotOnBSERoutes")
 // const whatsapproutes = require("./routes/whatsapproutes")
 const excelRoutes = require("./routes/excelRoutes");
+const DemoRoutes = require("./routes/DemoRoutes")
+const bodyParser = require('body-parser');
+const authRoutes = require('./routes/auth');
+ 
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -24,6 +29,12 @@ const ExcelDataFromSheet = require("./models/ExcelData")
 const upload = require("./config/multerConfig");
 
 
+
+// Middleware
+app.use(bodyParser.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 app.use("/api/excel/crud", excelRoutes);
 
@@ -44,7 +55,7 @@ app.use("/api/books", SipBookRoutes);
 app.use("/api/redemption", redemptionRoutes);
 app.use("/api/notonbse",NotOnBSERoutes);
 // app.use("/api/whatsapp", whatsapproutes);
-
+app.use("/api/demo", DemoRoutes);
 
 // ✅ Multer Configuration for File Uploads
 const storage = multer.memoryStorage();
