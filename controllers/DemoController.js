@@ -326,7 +326,7 @@ const updateSIPDeductions = async (req, res) => {
                 continue;
             }
 
-            let statusUpdate = orderStatus.toLowerCase() === "valid" ? "Yes" : `No - ${orderRemark}`.trim();
+            let statusUpdate = orderStatus.toLowerCase() === "valid" ? "✅" : `❌ - ${orderRemark}`.trim();
 
             // Ensure the deduction status is updated inside the correct year
             const updateFields = {};

@@ -41,16 +41,36 @@ exports.uploadExcelData = async (req, res) => {
             })
             .filter(row => row.userId && row.name && row.mobile);
 
-        console.log("✅ Transformed Data for MongoDB:", sheetData);
-
         if (sheetData.length === 0) {
             return res.status(400).json({ message: "No valid data found in Excel file" });
         }
 
-        const result = await ExcelDataFromSheet.insertMany(sheetData);
-        console.log("✅ Data Saved Successfully:", result);
+        // Fetch existing entries from DB
+        const existingEntries = await ExcelDataFromSheet.find({
+            $or: sheetData.map(({ userId, mobile }) => ({ userId, mobile }))
+        });
 
-        res.status(200).json({ message: "Excel file processed successfully", data: result });
+        const existingSet = new Set(
+            existingEntries.map(entry => `${entry.userId}-${entry.mobile}`)
+        );
+
+        // Filter out duplicates
+        const newEntries = sheetData.filter(
+            entry => !existingSet.has(`${entry.userId}-${entry.mobile}`)
+        );
+
+        if (newEntries.length === 0) {
+            return res.status(200).json({ message: "All entries already exist. No new data added." });
+        }
+
+        const result = await ExcelDataFromSheet.insertMany(newEntries);
+        console.log("✅ New Data Saved:", result.length, "entries");
+
+        res.status(200).json({
+            message: `${result.length} new records added successfully`,
+            data: result
+        });
+
     } catch (error) {
         console.error("❌ Error Processing Excel File:", error);
         res.status(500).json({ message: "Internal Server Error", error: error.message });
