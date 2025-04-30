@@ -45,16 +45,17 @@ exports.uploadExcelData = async (req, res) => {
             return res.status(400).json({ message: "No valid data found in Excel file" });
         }
 
-        // Fetch existing entries from DB
+        // Fetch existing entries from DB based on userId and mobile
         const existingEntries = await ExcelDataFromSheet.find({
             $or: sheetData.map(({ userId, mobile }) => ({ userId, mobile }))
         });
 
+        // Create a set of existing userId-mobile combinations
         const existingSet = new Set(
             existingEntries.map(entry => `${entry.userId}-${entry.mobile}`)
         );
 
-        // Filter out duplicates
+        // Filter out duplicates based on the existing set
         const newEntries = sheetData.filter(
             entry => !existingSet.has(`${entry.userId}-${entry.mobile}`)
         );
@@ -63,6 +64,7 @@ exports.uploadExcelData = async (req, res) => {
             return res.status(200).json({ message: "All entries already exist. No new data added." });
         }
 
+        // Save new entries
         const result = await ExcelDataFromSheet.insertMany(newEntries);
         console.log("✅ New Data Saved:", result.length, "entries");
 
@@ -76,6 +78,7 @@ exports.uploadExcelData = async (req, res) => {
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
+
 
 // ✅ Get All Records
 exports.getAllExcelData = async (req, res) => {

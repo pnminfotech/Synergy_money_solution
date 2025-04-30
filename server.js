@@ -20,8 +20,8 @@ const excelRoutes = require("./routes/excelRoutes");
 const DemoRoutes = require("./routes/DemoRoutes")
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/auth');
- 
-
+const gstInvoiceRoutes = require('./routes/gstInvoiceRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes')
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -48,7 +48,7 @@ app.use("/api/sip", DatewiseSipRoutes);
 
 
 app.use("/api/sip", SipBookRoutes);
-app.use(errorHandler);
+// app.use(errorHandler);
 app.use("/api/sips", SipBRoutes);
 app.use("/api/books", SipBookRoutes);
 
@@ -56,6 +56,13 @@ app.use("/api/redemption", redemptionRoutes);
 app.use("/api/notonbse",NotOnBSERoutes);
 // app.use("/api/whatsapp", whatsapproutes);
 app.use("/api/demo", DemoRoutes);
+
+
+
+
+app.use("/api", gstInvoiceRoutes)
+// Routes
+app.use('/api/invoice',invoiceRoutes)
 
 // ✅ Multer Configuration for File Uploads
 const storage = multer.memoryStorage();

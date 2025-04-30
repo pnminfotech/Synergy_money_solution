@@ -20,7 +20,7 @@ router.get("/sipDate/:date", getSIPByDate);
 // Update SIP deductions (Yes/No) from uploaded Excel file
 router.post("/update-deductions", upload.single("file"), updateSIPDeductions);
 
-router.get("/sipDate/:date", getClientsByDate);
+// router.get("/sipDate/:date", getClientsByDate);
 
 // Get all SIPs for a specific year
 router.get("/sips/:year", getSIPsByYear);
