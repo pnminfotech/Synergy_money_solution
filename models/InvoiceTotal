@@ -1,0 +1,34 @@
+const mongoose = require('mongoose');
+
+const invoiceTotalSchema = new mongoose.Schema({
+  totalTaxableAmount: {
+    type: Number,
+    required: true,
+  },
+  totalIGST: {
+    type: Number,
+    required: true,
+  },
+  totalCGST: {
+    type: Number,
+    required: true,
+  },
+  totalSGST: {
+    type: Number,
+    required: true,
+  },
+  totalGST: {
+    type: Number,
+    required: true,
+  },
+  totalNetAmount: {
+    type: Number,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+module.exports = mongoose.model('InvoiceTotal', invoiceTotalSchema);

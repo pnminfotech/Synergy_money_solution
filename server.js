@@ -22,6 +22,7 @@ const bodyParser = require('body-parser');
 const authRoutes = require('./routes/auth');
 const gstInvoiceRoutes = require('./routes/gstInvoiceRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes')
+const invoice = require('./routes/Invoice')
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -64,6 +65,7 @@ app.use("/api", gstInvoiceRoutes)
 // Routes
 app.use('/api/invoice',invoiceRoutes)
 
+app.use('/api/invoicenew', invoice)
 // ✅ Multer Configuration for File Uploads
 const storage = multer.memoryStorage();
 // const upload = multer({ storage: storage }).array("documents", 10);
