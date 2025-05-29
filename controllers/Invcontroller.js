@@ -32,7 +32,7 @@ const specialAMCs = [
   'NJ INDIAINVEST PVT. LTD. (LAS)',
   'NJ INDIAINVEST PVT. LTD. (MF)',
   'NJ INDIAINVEST PVT. LTD. (CM)',
-  'QUANTUM MUTUAL FUND'
+  
 ];
 
 
