@@ -28,30 +28,34 @@ router.post('/register', async (req, res) => {
   }
 });
 // Login route
+// Login route
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-  
-    try {
-      let user = await User.findOne({ email });
-      if (!user) {
-        return res.status(400).json({ message: 'Invalid credentials' });
-      }
-  
-      const isMatch = await user.matchPassword(password);
-      if (!isMatch) {
-        return res.status(400).json({ message: 'Invalid credentials' });
-      }
-  
-      const token = jwt.sign({ userId: user._id }, 'your_secret_key', { expiresIn: '1h' });
-  
-      res.json({
-        message: 'Login successful',
-        token,
-      });
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
+  const { email, password } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Email not found' });
     }
-  });
+
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect password' });
+    }
+
+    const token = jwt.sign({ userId: user._id }, 'your_secret_key', { expiresIn: '1h' });
+
+    res.json({
+      message: 'Login successful',
+      token,
+    });
+  } catch (err) {
+    console.error('Login error:', err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
   
 module.exports = router;
