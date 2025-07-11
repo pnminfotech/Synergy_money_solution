@@ -24,7 +24,16 @@ const gstInvoiceRoutes = require('./routes/gstInvoiceRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes')
 const invoice = require('./routes/Invoice')
 const app = express();
-app.use(cors());
+// app.use(cors());
+
+
+const corsOptions = {
+  origin: ['http://localhost:3000', 'https://pnminfotech.com/Synergy_Money_Solution/'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 const ExcelDataFromSheet = require("./models/ExcelData")
 const upload = require("./config/multerConfig");
