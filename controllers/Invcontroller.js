@@ -28,14 +28,22 @@ const generateInvoiceNumber = async (invoiceDate) => {
     throw new Error('Error generating invoice number');
   }
 };
-const specialAMCs = [
+// const specialAMCs = [
+//   'NJ INDIAINVEST PVT. LTD. (LAS)',
+//   'NJ INDIAINVEST PVT. LTD. (MF)',
+//   'NJ FINANCIAL SERVICES PVT. LTD',
+  
+// ];
+
+const specialAMCsManualInvoice = [
   'NJ INDIAINVEST PVT. LTD. (LAS)',
   'NJ INDIAINVEST PVT. LTD. (MF)',
-  'NJ INDIAINVEST PVT. LTD. (CM)',
-  
+  'NJ FINANCIAL SERVICES PVT. LTD',
 ];
 
-
+const igstOnlyAMCsAutoInvoice = [
+  'QUANTUM MUTUAL FUND' // IGST but invoice number auto
+];
 // const createInvoice = async (req, res) => {
 //   try {
 //     const data = req.body;
@@ -92,32 +100,79 @@ const calculateTaxes = (netAmount, isSpecialAMC) => {
   return { totalGst, taxableAmount, igst, cgst, sgst };
 };
 
+// const createInvoice = async (req, res) => {
+//   try {
+//     const data = req.body;
+//     const netAmount = parseFloat(data.netAmount);
+//     const { totalGst, taxableAmount, igst, cgst, sgst } = calculateTaxes(netAmount, specialAMCs.includes(data.amcClientName));
+
+//     let invoiceNumber = '';
+//     if (!specialAMCs.includes(data.amcClientName)) {
+//       invoiceNumber = await generateInvoiceNumber(data.invoiceDate);
+//     }
+
+//     const invoiceDate = new Date(data.invoiceDate);
+//     const month = invoiceDate.toLocaleString('default', { month: 'short' }) + '-' + invoiceDate.getFullYear().toString().slice(-2);
+//     const year = invoiceDate.getFullYear().toString();
+    
+
+//     if (specialAMCs.includes(data.amcClientName)) {
+     
+//       invoiceNumber = data.invoiceNo; // User provides it
+//       if (!invoiceNumber) {
+//         return res.status(400).json({ error: 'Invoice number is required for special AMCs' });
+//       }
+//     } else {
+      
+//       invoiceNumber = await generateInvoiceNumber(data.invoiceDate);
+//     }
+
+//     const invoice = new Invoice({
+//       ...data,
+//       invoiceNo: invoiceNumber,
+//       totalGst,
+//       taxableAmount,
+//       igst,
+//       cgst,
+//       sgst,
+//       month,
+//       year
+//     });
+
+//     await invoice.save();
+//     res.status(201).json(invoice);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 const createInvoice = async (req, res) => {
   try {
     const data = req.body;
     const netAmount = parseFloat(data.netAmount);
-    const { totalGst, taxableAmount, igst, cgst, sgst } = calculateTaxes(netAmount, specialAMCs.includes(data.amcClientName));
+
+    // Determine GST split
+    let isIGSTOnly = specialAMCsManualInvoice.includes(data.amcClientName) 
+                     || igstOnlyAMCsAutoInvoice.includes(data.amcClientName);
+    const { totalGst, taxableAmount, igst, cgst, sgst } = calculateTaxes(netAmount, isIGSTOnly);
 
     let invoiceNumber = '';
-    if (!specialAMCs.includes(data.amcClientName)) {
+
+    // Invoice number rules
+    if (specialAMCsManualInvoice.includes(data.amcClientName)) {
+      // Manual entry required
+      invoiceNumber = data.invoiceNo;
+      if (!invoiceNumber) {
+        return res.status(400).json({ error: 'Invoice number is required for special AMCs' });
+      }
+    } else {
+      // Auto-generate for all other cases (including IGST-only auto AMCs)
       invoiceNumber = await generateInvoiceNumber(data.invoiceDate);
     }
 
     const invoiceDate = new Date(data.invoiceDate);
     const month = invoiceDate.toLocaleString('default', { month: 'short' }) + '-' + invoiceDate.getFullYear().toString().slice(-2);
     const year = invoiceDate.getFullYear().toString();
-    
-
-    if (specialAMCs.includes(data.amcClientName)) {
-     
-      invoiceNumber = data.invoiceNo; // User provides it
-      if (!invoiceNumber) {
-        return res.status(400).json({ error: 'Invoice number is required for special AMCs' });
-      }
-    } else {
-      
-      invoiceNumber = await generateInvoiceNumber(data.invoiceDate);
-    }
 
     const invoice = new Invoice({
       ...data,
@@ -137,6 +192,9 @@ const createInvoice = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+
 function getFinancialYearMonths(year) {
   const months = [];
   const start = new Date(`${year}-04-01`);
