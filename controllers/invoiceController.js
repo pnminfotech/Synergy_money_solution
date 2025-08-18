@@ -26,9 +26,10 @@ const createInvoice = async (req, res) => {
     }
 
     const specialAMCs = [
-      'NJ INDIAINVEST PVT. LTD. (LAS)',
+      'NJ FINANCIAL SERVICES PVT. LTD.',
       'NJ INDIAINVEST PVT. LTD. (MF)',
-      'NJ FINANCIAL SERVICES PVT. LTD.'
+      
+        'NJ INDIAINVEST PVT. LTD. (CM)'
     ];
 
     const totalGst = Number(data.totalGst);

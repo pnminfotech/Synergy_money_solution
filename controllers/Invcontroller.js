@@ -36,9 +36,10 @@ const generateInvoiceNumber = async (invoiceDate) => {
 // ];
 
 const specialAMCsManualInvoice = [
-  'NJ INDIAINVEST PVT. LTD. (LAS)',
+ 'NJ FINANCIAL SERVICES PVT. LTD',
   'NJ INDIAINVEST PVT. LTD. (MF)',
-  'NJ FINANCIAL SERVICES PVT. LTD',
+  
+   'NJ INDIAINVEST PVT. LTD. (CM)'
 ];
 
 const igstOnlyAMCsAutoInvoice = [
