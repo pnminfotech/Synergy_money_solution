@@ -28,8 +28,8 @@ const app = express();
 
 
 const corsOptions = {
-  origin: ['http://localhost:3000', 'https://pnminfotech.com/Synergy_Money_Solution/'],
-//    origin: [ 'https://pnminfotech.com'],
+//   origin: ['http://localhost:3000', 'https://pnminfotech.com/Synergy_Money_Solution/'],
+   origin: [ 'https://pnminfotech.com'],
   credentials: true,
 };
 
