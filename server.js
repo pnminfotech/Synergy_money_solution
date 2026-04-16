@@ -28,12 +28,17 @@ const app = express();
 
 
 const corsOptions = {
-//   origin: ['http://localhost:3000', 'https://pnminfotech.com/Synergy_Money_Solution/'],
-   origin: [ 'https://pnminfotech.com'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3002',
+    'https://pnminfotech.com',
+    'http://localhost:5000'
+  ],
   credentials: true,
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 const ExcelDataFromSheet = require("./models/ExcelData")
